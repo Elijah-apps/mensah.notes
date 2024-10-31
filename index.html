@@ -15,17 +15,28 @@
             background: #f0f0f0;
             padding: 20px;
             font-family: 'Times New Roman', Times, serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notebook-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding-bottom: 70px; /* Space for pagination */
         }
 
         .notebook {
             width: 100%;
             max-width: 850px;
-            margin: 0 auto;
+            height: calc(100vh - 140px);
             background: white;
-            min-height: 1100px; /* A4 size height */
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             position: relative;
-            padding: 40px 0;
+            overflow: hidden;
         }
 
         /* Red margin line */
@@ -37,6 +48,7 @@
             bottom: 0;
             width: 1px;
             background: #ff0000;
+            z-index: 2;
         }
 
         /* Three-hole punch effect */
@@ -48,47 +60,52 @@
             background: #f0f0f0;
             border-radius: 50%;
             box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+            z-index: 2;
         }
 
         .hole:nth-child(1) { top: 100px; }
         .hole:nth-child(2) { top: 50%; transform: translateY(-50%); }
         .hole:nth-child(3) { bottom: 100px; }
 
-        /* Blue lines for writing */
         .page {
-            height: 100%;
-            background-image: 
-                linear-gradient(#0066cc 1px, transparent 1px);
-            background-size: 100% 25px;
-            padding: 0 80px 0 80px; /* Increased left padding for margin */
-        }
-
-        #content {
-            line-height: 25px;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
+            background-color: white;
+            transition: transform 0.3s ease-in-out;
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Blue lines background */
+        .lined-paper {
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(#b3d9ff 1px, transparent 1px);
+            background-size: 100% 25px;
+            background-position: 0 24px; /* Offset to align with text */
+            padding: 24px 80px 24px 80px;
+        }
+
+        .page-content {
+            width: 100%;
+            height: calc(100% - 48px); /* Account for date space */
             border: none;
             outline: none;
+            resize: none;
             font-family: inherit;
             font-size: 16px;
-            resize: none;
-            padding: 0;
+            line-height: 25px;
             background: transparent;
-            position: relative;
-            top: 24px; /* Aligns text with lines */
             color: #333;
         }
 
-        /* Top margin for page number */
-        .page-number {
-            position: absolute;
-            top: 10px;
-            right: 30px;
-            font-size: 12px;
-            color: #666;
-        }
-
-        /* Date field */
         .date {
             position: absolute;
             top: 10px;
@@ -97,10 +114,56 @@
             color: #666;
         }
 
-        /* Simple toolbar */
-        .toolbar {
+        .page-number {
+            position: absolute;
+            top: 10px;
+            right: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Pagination controls */
+        .pagination {
             position: fixed;
             bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .pagination button {
+            padding: 5px 15px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f5f5f5;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .toolbar {
+            position: fixed;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: white;
@@ -121,10 +184,6 @@
             cursor: pointer;
         }
 
-        .toolbar button:hover {
-            background: #f5f5f5;
-        }
-
         #penColor {
             -webkit-appearance: none;
             width: 30px;
@@ -134,48 +193,15 @@
             cursor: pointer;
         }
 
-        #penColor::-webkit-color-swatch {
-            border: none;
-            border-radius: 50%;
-            padding: 0;
-        }
-
+        #penColor::-webkit-color-swatch,
         #penColor::-webkit-color-swatch-wrapper {
             border: none;
             border-radius: 50%;
             padding: 0;
         }
-
-        /* File input styling */
-        #fileInput {
-            display: none;
-        }
-
-        .file-label {
-            padding: 5px 10px;
-            background: #f0f0f0;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .file-label:hover {
-            background: #e0e0e0;
-        }
     </style>
 </head>
 <body>
-    <div class="notebook">
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="date" id="currentDate"></div>
-        <div class="page-number">Page 1</div>
-        <div class="page">
-            <textarea id="content" placeholder="Start writing here..."></textarea>
-        </div>
-    </div>
-
     <div class="toolbar">
         <select id="fontSize">
             <option value="14px">Small</option>
@@ -183,70 +209,173 @@
             <option value="18px">Large</option>
         </select>
         <input type="color" id="penColor" value="#000000" title="Pen Color">
-        <label class="file-label" for="fileInput">Import</label>
-        <input type="file" id="fileInput" accept=".txt">
-        <button id="exportBtn">Export</button>
+        <button id="saveBtn">Save</button>
+        <button id="loadBtn">Load</button>
+    </div>
+
+    <div class="notebook-container">
+        <div class="notebook">
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+        </div>
+    </div>
+
+    <div class="pagination">
+        <button id="prevPage" disabled>Previous</button>
+        <span class="page-info">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></span>
+        <button id="nextPage">Next</button>
+        <button id="newPage">New Page</button>
     </div>
 
     <script>
-        // Set current date
-        const dateElem = document.getElementById('currentDate');
-        const today = new Date();
-        dateElem.textContent = today.toLocaleDateString();
+        class Notebook {
+            constructor() {
+                this.pages = [];
+                this.currentPageIndex = 0;
+                this.initializeFirstPage();
+                this.setupEventListeners();
+            }
 
-        // Font size handling
-        document.getElementById('fontSize').addEventListener('change', (e) => {
-            document.getElementById('content').style.fontSize = e.target.value;
-        });
+            initializeFirstPage() {
+                this.addPage();
+            }
 
-        // Pen color handling
-        document.getElementById('penColor').addEventListener('input', (e) => {
-            document.getElementById('content').style.color = e.target.value;
-        });
+            createPageElement(pageNumber) {
+                const page = document.createElement('div');
+                page.className = 'page';
+                page.innerHTML = `
+                    <div class="date">${new Date().toLocaleDateString()}</div>
+                    <div class="page-number">Page ${pageNumber}</div>
+                    <div class="lined-paper">
+                        <textarea class="page-content" placeholder="Start writing here..."></textarea>
+                    </div>
+                `;
+                return page;
+            }
 
-        // Import functionality
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('content').value = e.target.result;
+            addPage() {
+                const pageNumber = this.pages.length + 1;
+                const page = this.createPageElement(pageNumber);
+                this.pages.push({
+                    element: page,
+                    content: ''
+                });
+                document.querySelector('.notebook').appendChild(page);
+                this.updatePageDisplay();
+            }
+
+            showPage(index) {
+                this.pages.forEach((page, i) => {
+                    page.element.classList.toggle('active', i === index);
+                });
+                this.currentPageIndex = index;
+                this.updatePageDisplay();
+                this.updatePaginationButtons();
+            }
+
+            updatePageDisplay() {
+                document.getElementById('currentPage').textContent = this.currentPageIndex + 1;
+                document.getElementById('totalPages').textContent = this.pages.length;
+            }
+
+            updatePaginationButtons() {
+                document.getElementById('prevPage').disabled = this.currentPageIndex === 0;
+                document.getElementById('nextPage').disabled = this.currentPageIndex === this.pages.length - 1;
+            }
+
+            setupEventListeners() {
+                document.getElementById('prevPage').addEventListener('click', () => {
+                    if (this.currentPageIndex > 0) {
+                        this.showPage(this.currentPageIndex - 1);
+                    }
+                });
+
+                document.getElementById('nextPage').addEventListener('click', () => {
+                    if (this.currentPageIndex < this.pages.length - 1) {
+                        this.showPage(this.currentPageIndex + 1);
+                    }
+                });
+
+                document.getElementById('newPage').addEventListener('click', () => {
+                    this.addPage();
+                    this.showPage(this.pages.length - 1);
+                });
+
+                document.getElementById('fontSize').addEventListener('change', (e) => {
+                    document.querySelectorAll('.page-content').forEach(textarea => {
+                        textarea.style.fontSize = e.target.value;
+                    });
+                });
+
+                document.getElementById('penColor').addEventListener('input', (e) => {
+                    document.querySelectorAll('.page-content').forEach(textarea => {
+                        textarea.style.color = e.target.value;
+                    });
+                });
+
+                document.getElementById('saveBtn').addEventListener('click', () => this.saveNotebook());
+                document.getElementById('loadBtn').addEventListener('click', () => this.loadNotebook());
+            }
+
+            saveNotebook() {
+                const notebookData = this.pages.map(page => ({
+                    content: page.element.querySelector('.page-content').value,
+                    date: page.element.querySelector('.date').textContent
+                }));
+
+                const blob = new Blob([JSON.stringify(notebookData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `notebook_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            loadNotebook() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const notebookData = JSON.parse(e.target.result);
+                                this.loadPages(notebookData);
+                            } catch (error) {
+                                alert('Error loading notebook file');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
                 };
-                reader.readAsText(file);
+                input.click();
             }
-        });
 
-        // Export functionality
-        document.getElementById('exportBtn').addEventListener('click', () => {
-            const content = document.getElementById('content').value;
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `notes_${today.toISOString().slice(0,10)}.txt`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        });
+            loadPages(notebookData) {
+                // Clear existing pages
+                this.pages.forEach(page => page.element.remove());
+                this.pages = [];
 
-        // Tab key handling
-        document.getElementById('content').addEventListener('keydown', (e) => {
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                const start = e.target.selectionStart;
-                const end = e.target.selectionEnd;
-                e.target.value = e.target.value.substring(0, start) + 
-                                '\t' + 
-                                e.target.value.substring(end);
-                e.target.selectionStart = e.target.selectionEnd = start + 1;
+                // Create new pages from loaded data
+                notebookData.forEach(pageData => {
+                    this.addPage();
+                    const page = this.pages[this.pages.length - 1].element;
+                    page.querySelector('.page-content').value = pageData.content;
+                    page.querySelector('.date').textContent = pageData.date;
+                });
+
+                this.showPage(0);
             }
-        });
+        }
 
-        // Auto-resize textarea
-        const textarea = document.getElementById('content');
-        textarea.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
+        // Initialize the notebook
+        const notebook = new Notebook();
     </script>
 </body>
 </html>
