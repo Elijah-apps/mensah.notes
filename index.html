@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden Notebook</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        .notebook-page {
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 100% 2rem;
+            line-height: 2rem;
+            padding-top: 1.5rem;
+        }
+
+        .red-gutter::before {
+            content: '';
+            position: absolute;
+            left: 3rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #ef4444;
+            z-index: 1;
+        }
+
+        .notebook-content {
+            min-height: calc(100vh - 12rem);
+        }
+
+        .golden-gradient {
+            background: linear-gradient(135deg, #fbbf24, #92400e);
+        }
+
+        .paper-texture {
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-yellow-50">
+    <div class="min-h-screen">
+        <!-- Top Navigation -->
+        <nav class="golden-gradient shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <i class="fas fa-book-open text-yellow-100 text-2xl mr-3"></i>
+                        <span class="font-serif text-2xl text-yellow-100">Golden Notebook</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="importBtn" class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-md hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                            <i class="fas fa-file-import mr-2"></i>Import
+                        </button>
+                        <button id="exportBtn" class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-md hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                            <i class="fas fa-file-export mr-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="bg-white rounded-lg shadow-xl overflow-hidden">
+                <!-- Toolbar -->
+                <div class="border-b border-gray-200 p-4 bg-gray-50">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <!-- Font Family -->
+                        <select id="fontFamily" class="border-gray-300 rounded-md shadow-sm focus:ring-yellow-500 focus:border-yellow-500">
+                            <option value="font-serif">Serif</option>
+                            <option value="font-sans">Sans Serif</option>
+                            <option value="font-mono">Monospace</option>
+                            <option value="font-cursive">Cursive</option>
+                        </select>
+
+                        <!-- Font Size -->
+                        <select id="fontSize" class="border-gray-300 rounded-md shadow-sm focus:ring-yellow-500 focus:border-yellow-500">
+                            <option value="text-sm">Small</option>
+                            <option value="text-base" selected>Medium</option>
+                            <option value="text-lg">Large</option>
+                            <option value="text-xl">Extra Large</option>
+                        </select>
+
+                        <!-- Color Picker -->
+                        <div class="flex items-center space-x-2">
+                            <label class="text-sm text-gray-600">Text Color:</label>
+                            <input type="color" id="textColor" class="w-8 h-8 rounded cursor-pointer">
+                        </div>
+
+                        <!-- Marker Colors -->
+                        <div class="flex items-center space-x-2">
+                            <label class="text-sm text-gray-600">Marker:</label>
+                            <div class="flex space-x-1">
+                                <button class="w-6 h-6 rounded-full bg-yellow-200 hover:ring-2 ring-yellow-400" data-color="bg-yellow-200"></button>
+                                <button class="w-6 h-6 rounded-full bg-green-200 hover:ring-2 ring-green-400" data-color="bg-green-200"></button>
+                                <button class="w-6 h-6 rounded-full bg-blue-200 hover:ring-2 ring-blue-400" data-color="bg-blue-200"></button>
+                                <button class="w-6 h-6 rounded-full bg-pink-200 hover:ring-2 ring-pink-400" data-color="bg-pink-200"></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notebook Content -->
+                <div class="relative notebook-content red-gutter paper-texture">
+                    <div id="notebook" class="notebook-page px-16 py-4" contenteditable="true">
+                        Start writing your notes here...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Import Notebook</h3>
+                <div class="space-y-4">
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                        <input type="file" id="fileInput" class="hidden" accept=".json">
+                        <label for="fileInput" class="cursor-pointer text-gray-600 hover:text-gray-900">
+                            <i class="fas fa-cloud-upload-alt text-3xl mb-2"></i>
+                            <p>Drop your JSON file here or click to upload</p>
+                        </label>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancelImport" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">Cancel</button>
+                        <button id="confirmImport" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">Import</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-check-circle"></i>
+            <span id="notificationText"></span>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Font family change
+            $('#fontFamily').change(function() {
+                $('#notebook').removeClass('font-serif font-sans font-mono').addClass($(this).val());
+            });
+
+            // Font size change
+            $('#fontSize').change(function() {
+                $('#notebook').removeClass('text-sm text-base text-lg text-xl').addClass($(this).val());
+            });
+
+            // Text color change
+            $('#textColor').change(function() {
+                $('#notebook').css('color', $(this).val());
+            });
+
+            // Marker colors
+            $('.w-6.h-6.rounded-full').click(function() {
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const span = document.createElement('span');
+                    span.className = $(this).data('color');
+                    range.surroundContents(span);
+                }
+            });
+
+            // Import button
+            $('#importBtn').click(function() {
+                $('#importModal').removeClass('hidden');
+            });
+
+            // Cancel import
+            $('#cancelImport').click(function() {
+                $('#importModal').addClass('hidden');
+            });
+
+            // File import handling
+            $('#fileInput').change(function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const content = JSON.parse(e.target.result);
+                            if (content.hash && content.text) {
+                                // Verify SHA256 hash here
+                                $('#notebook').html(content.text);
+                                showNotification('Notebook imported successfully!');
+                            }
+                        } catch (error) {
+                            showNotification('Error: Invalid JSON file', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            // Export functionality
+            $('#exportBtn').click(function() {
+                const content = {
+                    text: $('#notebook').html(),
+                    hash: 'generated-sha256-hash', // Generate actual SHA256 hash here
+                    timestamp: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(content, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'notebook-' + new Date().toISOString().slice(0,10) + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('Notebook exported successfully!');
+            });
+
+            function showNotification(message, type = 'success') {
+                const notification = $('#notification');
+                notification.removeClass('bg-green-500 bg-red-500')
+                    .addClass(type === 'success' ? 'bg-green-500' : 'bg-red-500');
+                $('#notificationText').text(message);
+                notification.removeClass('hidden');
+                setTimeout(() => notification.addClass('hidden'), 3000);
+            }
+        });
+    </script>
+</body>
+</html>
